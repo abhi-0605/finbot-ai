@@ -1,12 +1,9 @@
 const User = require('../models/User');
 const logger = require('../utils/logger');
 
-
-
 const commandHandler = {
   handleStart: async (ctx) => {
     const telegramId = ctx.from.id;
-    
     
     try {
       let user = await User.findOne({ telegramId });
@@ -41,7 +38,6 @@ Type /help for all commands.`;
     } catch (error) {
       logger.error('Error in handleStart:', error);
       await ctx.reply('❌ An error occurred. Please try again later.');
-
     }
   },
 
@@ -69,7 +65,6 @@ Type /help for all commands.`;
   handleSetup: async (ctx) => {
     const telegramId = ctx.from.id;
 
-    
     try {
       const user = await User.findOne({ telegramId });
 
@@ -99,10 +94,47 @@ Just reply with each answer!`;
       user.setupStep = 1;
       await user.save();
       
-      
     } catch (error) {
       logger.error('Error in handleSetup:', error);
       await ctx.reply('❌ Setup failed. Please try again.');
+    }
+  },
+
+  handleSummary: async (ctx) => {
+    const telegramId = ctx.from.id;
+
+    try {
+      const user = await User.findOne({ telegramId });
+
+      if (!user) {
+        await ctx.reply('❌ User not found. Please /start first.');
+        return;
+      }
+
+      if (!user.isSetupComplete) {
+        await ctx.reply('❌ Please complete /setup first.');
+        return;
+      }
+
+      const transactionService = require('../services/transactionService');
+      const summary = await transactionService.getSummary(telegramId);
+
+      const summaryMessage = `📊 Your Financial Summary
+
+💰 Current Savings: ₹${summary.currentSavings}
+📈 Total Income: ₹${summary.totalIncome}
+📉 Total Expenses: ₹${summary.totalExpense}
+💵 Current Balance: ₹${summary.currentBalance}
+
+📋 Monthly Income: ₹${summary.monthlyIncome}
+🎯 Emergency Fund Target: ₹${summary.emergencyFundTarget}
+📝 Total Transactions: ${summary.transactions}`;
+
+      await ctx.reply(summaryMessage);
+
+    } catch (error) {
+      logger.error('Error in handleSummary:', error);
+      await ctx.reply('❌ Failed to get summary. Please try again.');
     }
   },
 };

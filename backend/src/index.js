@@ -16,55 +16,57 @@ const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 connectDB();
 
 
-// Commands
+
+// ============ COMMANDS (Register BEFORE message handler) ============
+
 bot.start(async (ctx) => {
   logger.info(`User started bot: ${ctx.from.id}`);
   await commandHandler.handleStart(ctx);
 });
-
 
 bot.help(async (ctx) => {
   logger.info(`User requested help: ${ctx.from.id}`);
   await commandHandler.handleHelp(ctx);
 });
 
-
 bot.command('setup', async (ctx) => {
   logger.info(`User initiated setup: ${ctx.from.id}`);
   await commandHandler.handleSetup(ctx);
 });
 
+bot.command('summary', async (ctx) => {
+  logger.info(`User requested summary: ${ctx.from.id}`);
+  await commandHandler.handleSummary(ctx);
+});
 
-// Handle messages
+
+
+// ============ MESSAGE HANDLER (Last) ============
+
 bot.on('message', async (ctx) => {
   logger.info(`Message from ${ctx.from.id}: ${ctx.message.text}`);
   await messageHandler.handleMessage(ctx);
 });
 
+// ============ EXPRESS ROUTES ============
 
-// Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'Bot is running' });
 });
 
-
-
-// Webhook endpoint
 app.post('/webhook', (req, res) => {
   bot.handleUpdate(req.body);
   res.send('ok');
 });
 
-
 app.listen(port, () => {
   logger.info(`✅ Server running on port ${port}`);
+  logger.info(`🤖 Bot is ready to receive messages`);
 });
-
 
 bot.launch().catch((err) => {
   logger.error('Bot launch error:', err);
 });
-
 
 process.on('SIGINT', () => {
   logger.info('Shutting down gracefully...');
