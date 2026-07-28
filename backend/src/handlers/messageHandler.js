@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
+const Goal = require('../models/Goal');
 const logger = require('../utils/logger');
 
 const messageHandler ={
@@ -29,6 +30,11 @@ const messageHandler ={
 
             if(userMessage.includes('earned') || userMessage.includes('received') || userMessage.includes('got')){
                 await handleIncome(ctx, user, userMessage);
+                return;
+            }
+
+            if(userMessage.includes('goal:') || userMessage.includes('goal:') || userMessage.includes('goal:')){
+                await handleGoal(ctx, user, userMessage);
                 return;
             }
 
@@ -179,5 +185,43 @@ const handleIncome = async (ctx, user, userMessage) => {
         await ctx.reply('❌ Failed to log income. Try again.');
     }
 }
+
+
+const handleGoal = async (ctx, user, userMessage) => {
+  try {
+    const amountMatch = userMessage.match(/[\d,]+/);
+    const amount = amountMatch ? parseInt(amountMatch[0].replace(/,/g, '')) : null;
+
+    if (!amount || isNaN(amount)) {
+      await ctx.reply('❌ Couldn\'t find amount. Example: "Goal: Save ₹1,00,000 for laptop"');
+      return;
+    }
+
+    // Remove the matched amount from the string
+    const goalName = userMessage.replace(amountMatch[0], '').replace(/goal:/i, '').replace(/save/i, '').replace(/for/i, '').trim();
+
+    const goal = await Goal.create({
+      userId: user.telegramId,
+      name: goalName || 'Unnamed Goal',
+      targetAmount: amount,
+      currentAmount: 0,
+      status: 'active',
+    });
+
+    logger.info(`Goal created: ${goalName} for ₹${amount} by user ${user.telegramId}`);
+
+    await ctx.reply(
+      `✅ Goal Created!\n\n` +
+      `Goal: ${goalName}\n` +
+      `Target: ₹${amount}\n` +
+      `Progress: 0%\n\n` +
+      `Use /goals to view all goals!`
+    );
+
+  } catch (error) {
+    logger.error('Error in handleGoal:', error);
+    await ctx.reply('❌ Failed to create goal. Try again.');
+  }
+};
 
 module.exports=messageHandler;

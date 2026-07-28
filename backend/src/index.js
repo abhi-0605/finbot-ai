@@ -49,6 +49,11 @@ bot.command('budget', async(ctx)=>{
     await commandHandler.handleBudget(ctx);
 })
 
+bot.command('goals',async(ctx) => {
+    logger.info(`User requested goals: ${ctx.from.id}`);
+    await commandHandler.handleGoals(ctx);
+})
+
 
 // ============ MESSAGE HANDLER (Last) ============
 

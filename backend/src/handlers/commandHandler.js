@@ -260,6 +260,51 @@ Total: ₹${budget.totalIncome}
             logger.error('Error in handleBudget:', error);
             await ctx.reply('❌ Failed to get budget. Please try again.');
         }
+    },
+
+    handleGoals: async(ctx) =>{
+        const telegramId = ctx.from.id;
+
+        try{
+            const user = await User.findOne({ telegramId });
+
+            if(!user){
+                await ctx.reply('❌ User not found. Please /start first.');
+                return;
+            }
+
+            if(!user.isSetupComplete){
+                await ctx.reply('❌ Please complete /setup first.');
+                return;
+            }
+
+            const goalService = require('../services/goalService');
+            const goals = await goalService.getGoals(telegramId);
+
+            if(goals.length === 0){
+                await ctx.reply('📌 You have no active goals yet.\n\nYou can add goals by chatting:\n"Goal: Save ₹1,00,000 for a laptop"');
+                return;
+            }
+
+            let goalsText  =  '🎯 Your Financial Goals\n\n';
+
+
+            goals.forEach((goal, i) => {
+                const progressBar = '█'.repeat(Math.round(goal.progress / 10)) + '░'.repeat(10 - Math.round(goal.progress / 10));
+                goalsText += `${i + 1}. ${goal.name}\n`;
+                goalsText += `   Target: ₹${goal.targetAmount}\n`;
+                goalsText += `   Current: ₹${goal.currentAmount}\n`;
+                goalsText += `   Progress: ${progressBar} ${goal.progress}%\n`;
+                goalsText += `   Remaining: ₹${goal.remaining}\n\n`;
+            });
+
+            await ctx.reply(goalsText);
+
+
+        }catch(error){
+            logger.error('Error in handleGoals:', error);
+            await ctx.reply('❌ Failed to get goals. Please try again.');
+        }
     }
 };
 
