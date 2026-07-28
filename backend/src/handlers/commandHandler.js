@@ -2,6 +2,8 @@ const User = require('../models/User');
 const logger = require('../utils/logger');
 
 const commandHandler = {
+
+
     handleStart: async (ctx) => {
         const telegramId = ctx.from.id;
 
@@ -41,6 +43,9 @@ Type /help for all commands.`;
         }
     },
 
+
+
+
     handleHelp: async (ctx) => {
         const helpMessage = `📚 FinBot Commands:
 
@@ -61,6 +66,10 @@ Type /help for all commands.`;
 
         await ctx.reply(helpMessage);
     },
+
+
+
+
 
     handleSetup: async (ctx) => {
         const telegramId = ctx.from.id;
@@ -100,6 +109,9 @@ Just reply with each answer!`;
         }
     },
 
+
+
+
     handleSummary: async (ctx) => {
         const telegramId = ctx.from.id;
 
@@ -137,6 +149,10 @@ Just reply with each answer!`;
             await ctx.reply('❌ Failed to get summary. Please try again.');
         }
     },
+
+
+
+
 
     handleReport: async (ctx) => {
         const telegramId = ctx.from.id;
@@ -189,6 +205,60 @@ ${categoryText}
         } catch (error) {
             logger.error('Error in handleReport:', error);
             await ctx.reply('❌ Failed to get report. Please try again.');
+        }
+    },
+
+
+
+
+    handleBudget: async(ctx) =>{
+        const telegramId = ctx.from.id;
+
+        try{
+
+            const user = await User.findOne({ telegramId });
+
+            if(!user){
+                await ctx.reply('❌ User not found. Please /start first.');
+                return;
+            }
+
+            if(!user.isSetupComplete){
+                await ctx.reply('❌ Please complete /setup first.');
+                return;
+            }
+
+
+            const budgetService = require('../services/budgetService');
+            const budget = budgetService.calculateBudget(user.monthlyIncome);
+
+            
+
+            const budgetMessage = `💰 Recommended Budget Plan
+
+Based on your income: ₹${user.monthlyIncome}
+
+Using 50-30-20 Rule:
+
+🏠 Needs (50%): ₹${budget.needs}
+   Housing, food, utilities, transport
+
+🎉 Wants (30%): ₹${budget.wants}
+   Entertainment, shopping, dining out
+
+💾 Savings (20%): ₹${budget.savings}
+   Emergency fund, goals, investments
+
+Total: ₹${budget.totalIncome}
+
+💡 Tip: Adjust based on your lifestyle!`;
+
+            await ctx.reply(budgetMessage); 
+
+
+        }catch(error){
+            logger.error('Error in handleBudget:', error);
+            await ctx.reply('❌ Failed to get budget. Please try again.');
         }
     }
 };
