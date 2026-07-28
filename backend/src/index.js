@@ -39,6 +39,10 @@ bot.command('summary', async (ctx) => {
   await commandHandler.handleSummary(ctx);
 });
 
+bot.command('report', async(ctx) => {
+    logger.info(`User requested report: ${ctx.from.id}`);
+    await commandHandler.handleReport(ctx);
+})
 
 
 // ============ MESSAGE HANDLER (Last) ============

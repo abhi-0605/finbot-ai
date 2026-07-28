@@ -2,23 +2,23 @@ const User = require('../models/User');
 const logger = require('../utils/logger');
 
 const commandHandler = {
-  handleStart: async (ctx) => {
-    const telegramId = ctx.from.id;
-    
-    try {
-      let user = await User.findOne({ telegramId });
+    handleStart: async (ctx) => {
+        const telegramId = ctx.from.id;
 
-      if (!user) {
-        user = await User.create({
-          telegramId,
-          firstName: ctx.from.first_name,
-          lastName: ctx.from.last_name,
-          username: ctx.from.username,
-        });
-        logger.info(`New user created: ${telegramId}`);
-      }
+        try {
+            let user = await User.findOne({ telegramId });
 
-      const welcomeMessage = `🎉 Welcome to FinBot AI!
+            if (!user) {
+                user = await User.create({
+                    telegramId,
+                    firstName: ctx.from.first_name,
+                    lastName: ctx.from.last_name,
+                    username: ctx.from.username,
+                });
+                logger.info(`New user created: ${telegramId}`);
+            }
+
+            const welcomeMessage = `🎉 Welcome to FinBot AI!
 
 I'm your personal finance advisor. I help you:
 ✅ Track expenses & income naturally
@@ -34,15 +34,15 @@ Or just chat naturally:
 
 Type /help for all commands.`;
 
-      await ctx.reply(welcomeMessage);
-    } catch (error) {
-      logger.error('Error in handleStart:', error);
-      await ctx.reply('❌ An error occurred. Please try again later.');
-    }
-  },
+            await ctx.reply(welcomeMessage);
+        } catch (error) {
+            logger.error('Error in handleStart:', error);
+            await ctx.reply('❌ An error occurred. Please try again later.');
+        }
+    },
 
-  handleHelp: async (ctx) => {
-    const helpMessage = `📚 FinBot Commands:
+    handleHelp: async (ctx) => {
+        const helpMessage = `📚 FinBot Commands:
 
 /start - Start the bot
 /help - Show this message
@@ -59,21 +59,21 @@ Type /help for all commands.`;
 - "Received ₹80,000 salary"
 - "How much did I spend on food?"`;
 
-    await ctx.reply(helpMessage);
-  },
+        await ctx.reply(helpMessage);
+    },
 
-  handleSetup: async (ctx) => {
-    const telegramId = ctx.from.id;
+    handleSetup: async (ctx) => {
+        const telegramId = ctx.from.id;
 
-    try {
-      const user = await User.findOne({ telegramId });
+        try {
+            const user = await User.findOne({ telegramId });
 
-      if (!user) {
-        await ctx.reply('❌ User not found. Please /start first.');
-        return;
-      }
+            if (!user) {
+                await ctx.reply('❌ User not found. Please /start first.');
+                return;
+            }
 
-      const setupMessage = `🔧 Let's set up your profile!
+            const setupMessage = `🔧 Let's set up your profile!
 
 Please tell me:
 1️⃣ What's your average monthly income? (in ₹)
@@ -90,36 +90,36 @@ Please tell me:
 
 Just reply with each answer!`;
 
-      await ctx.reply(setupMessage);
-      user.setupStep = 1;
-      await user.save();
-      
-    } catch (error) {
-      logger.error('Error in handleSetup:', error);
-      await ctx.reply('❌ Setup failed. Please try again.');
-    }
-  },
+            await ctx.reply(setupMessage);
+            user.setupStep = 1;
+            await user.save();
 
-  handleSummary: async (ctx) => {
-    const telegramId = ctx.from.id;
+        } catch (error) {
+            logger.error('Error in handleSetup:', error);
+            await ctx.reply('❌ Setup failed. Please try again.');
+        }
+    },
 
-    try {
-      const user = await User.findOne({ telegramId });
+    handleSummary: async (ctx) => {
+        const telegramId = ctx.from.id;
 
-      if (!user) {
-        await ctx.reply('❌ User not found. Please /start first.');
-        return;
-      }
+        try {
+            const user = await User.findOne({ telegramId });
 
-      if (!user.isSetupComplete) {
-        await ctx.reply('❌ Please complete /setup first.');
-        return;
-      }
+            if (!user) {
+                await ctx.reply('❌ User not found. Please /start first.');
+                return;
+            }
 
-      const transactionService = require('../services/transactionService');
-      const summary = await transactionService.getSummary(telegramId);
+            if (!user.isSetupComplete) {
+                await ctx.reply('❌ Please complete /setup first.');
+                return;
+            }
 
-      const summaryMessage = `📊 Your Financial Summary
+            const transactionService = require('../services/transactionService');
+            const summary = await transactionService.getSummary(telegramId);
+
+            const summaryMessage = `📊 Your Financial Summary
 
 💰 Current Savings: ₹${summary.currentSavings}
 📈 Total Income: ₹${summary.totalIncome}
@@ -130,13 +130,67 @@ Just reply with each answer!`;
 🎯 Emergency Fund Target: ₹${summary.emergencyFundTarget}
 📝 Total Transactions: ${summary.transactions}`;
 
-      await ctx.reply(summaryMessage);
+            await ctx.reply(summaryMessage);
 
-    } catch (error) {
-      logger.error('Error in handleSummary:', error);
-      await ctx.reply('❌ Failed to get summary. Please try again.');
+        } catch (error) {
+            logger.error('Error in handleSummary:', error);
+            await ctx.reply('❌ Failed to get summary. Please try again.');
+        }
+    },
+
+    handleReport: async (ctx) => {
+        const telegramId = ctx.from.id;
+
+        try {
+            const user = await User.findOne({ telegramId });
+
+            if (!user) {
+                await ctx.reply('❌ User not found. Please /start first.');
+                return;
+            }
+
+            if (!user.isSetupComplete) {
+                await ctx.reply('❌ Please complete /setup first.');
+                return;
+            }
+
+            const reportService = require('../services/reportService');
+            const now = new Date();
+            
+            const report = await reportService.getMonthlyReport(telegramId, now.getFullYear(), now.getMonth() + 1);
+
+            let categoryText = '';
+            report.categories.forEach((cat, i) => {
+                const percentage = ((cat[1] / report.expenses) * 100).toFixed(0);
+                categoryText += `${i + 1}. ${cat[0]}: ₹${cat[1]} (${percentage}%)\n`;
+            });
+
+            const reportMessage = `📊 Monthly Report - ${report.month}
+
+💰 Income Summary:- Total Income: ₹${report.income}
+
+💸 Expense Summary:
+- Total Expenses: ₹${report.expenses}
+- Avg Daily Spend: ₹${report.avgDailySpend}
+
+💵 Financial Summary:
+- Savings: ₹${report.savings}
+- Savings Rate: ${report.savingsRate}%
+
+📈 Top Spending Categories:
+${categoryText}
+
+📝 Transactions: ${report.transactionCount}`;
+
+            await ctx.reply(reportMessage);
+
+
+
+        } catch (error) {
+            logger.error('Error in handleReport:', error);
+            await ctx.reply('❌ Failed to get report. Please try again.');
+        }
     }
-  },
 };
 
 module.exports = commandHandler;
