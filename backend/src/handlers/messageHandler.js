@@ -118,14 +118,18 @@ const handleExpense = async (ctx, user, userMessage) => {
             return;
         }
 
+       
+        const geminiService = require('../services/geminiService');
+        let category = await geminiService.categorizeExpense(userMessage);
 
-        let category = 'Other';
-        if(userMessage.includes('food') || userMessage.includes('pizza') || userMessage.includes('lunch') || userMessage.includes('dinner')) category='Food';
-        else if (userMessage.includes('fuel') || userMessage.includes('transport') || userMessage.includes('auto')) category = 'Transport';
-        else if (userMessage.includes('bill') || userMessage.includes('electric') || userMessage.includes('water')) category = 'Utilities';
-        else if (userMessage.includes('movie') || userMessage.includes('entertainment') || userMessage.includes('game')) category = 'Entertainment';
-        else if (userMessage.includes('clothes') || userMessage.includes('shop') || userMessage.includes('dress')) category = 'Shopping';
-
+        if (!category) {
+          category = 'Other';
+          if(userMessage.includes('food') || userMessage.includes('pizza') || userMessage.includes('lunch') || userMessage.includes('dinner') || userMessage.includes('restaurant')) category='Food';
+          else if (userMessage.includes('fuel') || userMessage.includes('transport') || userMessage.includes('auto') || userMessage.includes('taxi') || userMessage.includes('uber')) category = 'Transport';
+          else if (userMessage.includes('bill') || userMessage.includes('electric') || userMessage.includes('water') || userMessage.includes('internet')) category = 'Utilities';
+          else if (userMessage.includes('movie') || userMessage.includes('entertainment') || userMessage.includes('game') || userMessage.includes('spotify')) category = 'Entertainment';
+          else if (userMessage.includes('clothes') || userMessage.includes('shop') || userMessage.includes('dress') || userMessage.includes('shoes')) category = 'Shopping';
+        }
 
         const transaction = await Transaction.create({
             userId: user.telegramId,
@@ -133,12 +137,10 @@ const handleExpense = async (ctx, user, userMessage) => {
             type: 'expense',
             category,
             description: userMessage,
-            taggedBy: 'regex',
+            taggedBy: 'ai',
         });
 
         logger.info(`Expense logged: ₹${amount} by user ${user.telegramId}`);
-
-        
 
         await ctx.reply(
             `✅ Expense Logged!\n\n` +
