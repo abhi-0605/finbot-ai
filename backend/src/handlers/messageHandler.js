@@ -119,8 +119,8 @@ const handleExpense = async (ctx, user, userMessage) => {
         }
 
        
-        // const geminiService = require('../services/geminiService');
-        // let category = await geminiService.categorizeExpense(userMessage);
+        const geminiService = require('../services/geminiService');
+        let category = await geminiService.categorizeExpense(userMessage);
 
         // const huggingfaceService = require('../services/huggingfaceService');
         // let category = await huggingfaceService.categorizeExpense(userMessage);
