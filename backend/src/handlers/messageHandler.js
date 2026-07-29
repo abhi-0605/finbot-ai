@@ -38,6 +38,11 @@ const messageHandler ={
                 return;
             }
 
+            if(userMessage.includes('afford') || userMessage.includes('can i buy') || userMessage.includes('should i buy')){
+                await handleAffordability(ctx, user, userMessage);
+                return;
+            }
+
 
             await ctx.reply(
                 '💭 I didn\'t understand. Try:\n\n' +
@@ -223,5 +228,46 @@ const handleGoal = async (ctx, user, userMessage) => {
     await ctx.reply('❌ Failed to create goal. Try again.');
   }
 };
+
+
+const handleAffordability = async(ctx, user, userMessage) => {
+    try{
+        const amountMatch = userMessage.match(/[\d,]+/);
+        const amount = amountMatch ? parseInt(amountMatch[0].replace(/,/g, '')) : null;
+
+        if(!amount || isNaN(amount)){
+            await ctx.reply('❌ Please specify amount. Example: "Can I afford ₹80,000 laptop?"');
+            return;
+        }
+
+        const affordabilityService = require('../services/affordabilityService');
+        const analysis = await affordabilityService.analyzeAffordability(user.telegramId, amount);
+
+        const affordabilityMessage = `💰 Affordability Analysis
+
+Purchase: ₹${analysis.purchaseAmount}
+
+📊 Your Profile:
+- Current Savings: ₹${analysis.currentBalance}
+- Monthly Income: ₹${analysis.monthlyIncome}
+- Emergency Fund Target: ₹${analysis.emergencyFundTarget}
+
+🔍 Analysis:
+- ${analysis.analysis.balanceImpact}
+- ${analysis.analysis.incomeImpact}
+- Emergency Fund Impact: ${analysis.analysis.emergencyFundImpact}
+
+💵 After Purchase:
+- Balance: ₹${analysis.balanceAfterPurchase}
+
+${analysis.recommendation}`;
+
+        await ctx.reply(affordabilityMessage);
+
+    }catch(error){
+        logger.error('Error in handleAffordability:', error);
+        await ctx.reply('❌ Failed to analyze affordability. Try again.');
+    }
+}
 
 module.exports=messageHandler;

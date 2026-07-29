@@ -17,42 +17,54 @@ connectDB();
 
 
 
-// ============ COMMANDS (Register BEFORE message handler) ============
 
+// /start command handler
 bot.start(async (ctx) => {
   logger.info(`User started bot: ${ctx.from.id}`);
   await commandHandler.handleStart(ctx);
 });
 
+// /help command handler
 bot.help(async (ctx) => {
   logger.info(`User requested help: ${ctx.from.id}`);
   await commandHandler.handleHelp(ctx);
 });
 
+// /setup command handler
 bot.command('setup', async (ctx) => {
   logger.info(`User initiated setup: ${ctx.from.id}`);
   await commandHandler.handleSetup(ctx);
 });
 
+// /summary command handler
 bot.command('summary', async (ctx) => {
   logger.info(`User requested summary: ${ctx.from.id}`);
   await commandHandler.handleSummary(ctx);
 });
 
+// /report command handler
 bot.command('report', async(ctx) => {
     logger.info(`User requested report: ${ctx.from.id}`);
     await commandHandler.handleReport(ctx);
 })
 
+// /budget command handler
 bot.command('budget', async(ctx)=>{
     logger.info(`User requested budget: ${ctx.from.id}`);
     await commandHandler.handleBudget(ctx);
 })
 
+// /goals command handler
 bot.command('goals',async(ctx) => {
     logger.info(`User requested goals: ${ctx.from.id}`);
     await commandHandler.handleGoals(ctx);
 })
+
+// /afford command handler
+bot.command('afford', async(ctx) => {
+    logger.info(`User requested affordability analysis: ${ctx.from.id}`);
+    await commandHandler.handleAfford(ctx);
+});
 
 
 // ============ MESSAGE HANDLER (Last) ============

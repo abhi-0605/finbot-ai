@@ -262,6 +262,9 @@ Total: ₹${budget.totalIncome}
         }
     },
 
+
+
+
     handleGoals: async(ctx) =>{
         const telegramId = ctx.from.id;
 
@@ -305,7 +308,37 @@ Total: ₹${budget.totalIncome}
             logger.error('Error in handleGoals:', error);
             await ctx.reply('❌ Failed to get goals. Please try again.');
         }
-    }
+    },
+
+
+
+    handleAfford: async(ctx) =>{
+        const telegramId = ctx.from.id;
+
+        try{
+            const user = await User.findOne({ telegramId });
+
+            if(!user){
+                await ctx.reply('❌ User not found. Please /start first.');
+                return;
+            }
+
+            if(!user.isSetupComplete){
+                await ctx.reply('❌ Please complete /setup first.');
+                return;
+            }
+
+            await ctx.reply('💰 Tell me the amount you want to spend.\n\nExample: "Can I afford ₹80,000 laptop?"');
+        }catch(error){
+            logger.error('Error in handleAfford:', error);
+            await ctx.reply('❌ An error occurred. Please try again.');
+        }
+    },
+
+    
+
+
+    
 };
 
 module.exports = commandHandler;
