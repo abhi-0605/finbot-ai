@@ -66,6 +66,14 @@ bot.command('afford', async(ctx) => {
     await commandHandler.handleAfford(ctx);
 });
 
+// /insights command handler
+bot.command('insights', async(ctx) => {
+    logger.info(`User requested weekly insights: ${ctx.from.id}`);
+    await commandHandler.handleWeeklyInsights(ctx);
+});
+
+
+
 
 // ============ MESSAGE HANDLER (Last) ============
 

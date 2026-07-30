@@ -336,9 +336,67 @@ Total: ₹${budget.totalIncome}
     },
 
     
+    handleWeeklyInsights: async(ctx) =>{
+        const telegramId = ctx.from.id;
+
+        try{
+            const user = await User.findOne({ telegramId });
+
+            if(!user){
+                await ctx.reply('❌ User not found. Please /start first.');
+                return;
+            }
+
+            if(!user.isSetupComplete){
+                await ctx.reply('❌ Please complete /setup first.');
+                return;
+            }
+
+            const insightService = require('../services/insightService');
+            const insights = await insightService.getWeeklyInsights(telegramId);
+
+            let topCategoriesText = '';
+            if(insights.topCategories.length > 0){
+                topCategoriesText = '\n📊 Top Categories:\n';
+                insights.topCategories.forEach((cat, i) => {
+                    topCategoriesText += `${i + 1}. ${cat[0]}: ₹${cat[1]}\n`;
+                });
+            }
+
+            let insightsText = '';
+
+            insights.insights.forEach(insight =>{
+                insightsText += `- ${insight}\n`;
+            });
+
+            const weeklyMessage = `📊 Weekly Insights
+
+💰 This Week:
+- Expenses: ₹${insights.currentExpense}
+- Income: ₹${insights.currentIncome}
+- Transactions: ${insights.totalTransactions}
+
+📈 vs Last Week:
+- Change: ${insights.expenseChange > 0 ? '+' : ''}${insights.expenseChange}%
+- Previous: ₹${insights.previousExpense}
+${topCategoriesText}
+💡 Insights:
+${insightsText}`;
+
+
+
+            await ctx.reply(weeklyMessage);
+
+
+        }catch(error){
+            logger.error('Error in handleWeeklyInsights:', error);
+            await ctx.reply('❌ Failed to get insights. Please try again.');
+        }
+    },
 
 
     
+
 };
 
 module.exports = commandHandler;
