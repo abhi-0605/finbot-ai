@@ -1,124 +1,131 @@
 # FinBot AI - Personal Finance Telegram Bot
 
-AI-Powered Personal Finance Advisor for Telegram
+AI-Powered Telegram bot for expense tracking, budgeting, and financial insights.
 
-## Project Overview
+## Features
 
-FinBot AI is an intelligent Telegram bot that helps users track finances through natural conversation.
-
-### Key Features
-✅ Natural language expense tracking
-✅ Income logging
-✅ Monthly reports
-✅ Budget planning
-✅ Financial goal tracking
-✅ AI-powered affordability analysis (Phase 2)
-
-## Project Structure
-finbot-ai/
-├── backend/ (Node.js + Express + MongoDB)
-│ ├── src/
-│ │ ├── config/
-│ │ ├── models/
-│ │ ├── handlers/
-│ │ ├── utils/
-│ │ └── index.js
-│ ├── .env
-│ ├── package.json
-│ └── README.md
-├── frontend/ (Coming Phase 2 - React Dashboard)
-└── README.md
-
-## Quick Start
-
-### Backend Setup
-```powershell
-cd backend
-npm install
-# Create .env with API keys
-npm run dev
-```
-
-Bot will start on `http://localhost:3000`
+- Natural language expense/income logging
+- Monthly reports with category breakdown
+- Budget planning (50-30-20 rule)
+- Financial goal tracking
+- Weekly spending insights
+- Affordability analysis
+- Receipt OCR (photo upload)
+- Bill reminders & tracking
+- Smart expense categorization
 
 ## Tech Stack
 
-**Backend:**
-- Node.js
-- Express.js
-- MongoDB + Mongoose
-- Telegraf (Telegram Bot)
-- Dotenv
+- **Backend:** Node.js, Express.js
+- **Database:** MongoDB
+- **Telegram:** Telegraf.js
+- **OCR:** Tesseract.js
+- **HTTP:** Axios
 
-**Frontend (Phase 2):**
-- React.js
-- Tailwind CSS
-- Axios
+## Screenshots
 
-## Phases
+### Initialization
+<img src="./screenshots/screenshots01-start.jpeg" width="300" height="600" alt="Start Command">
 
-### Phase 0 (Current) ✅
-- Basic project setup
-- User profiles
-- Expense/Income tracking
-- Setup flow
-- Command handlers
+### Setup Profile
+<img src="./screenshots/screenshots02-setup-1.jpeg" width="300" height="600" alt="Setup Step 1">
+<img src="./screenshots/screenshots02-setup-2.jpeg" width="300" height="600" alt="Setup Step 2">
 
-### Phase 1 (Next)
-- Monthly reports
-- Budget planning
-- Goal tracking
-- Analytics
-- Category detection with AI
+### Expense & Income Logging
+<img src="./screenshots/screenshots03-expenses.jpeg" width="300" height="600" alt="Spent/Paid Examples">
 
-### Phase 2
-- Affordability analysis
-- Web dashboard
-- Premium features
-- Freemium model
+### Financial Goals
+<img src="./screenshots/screenshots04-goals.jpeg" width="300" height="600" alt="Create Goals">
 
-### Phase 3+
-- Mobile app
-- Receipt OCR
-- Bank statement integration
-- Investment tracking
+### Affordability Analysis
+<img src="./screenshots/screenshots05-afford.jpeg" width="300" height="600" alt="Can I Afford">
 
-## API Endpoints
+### Financial Summary
+<img src="./screenshots/screenshots01-summary.jpeg" width="300" height="600" alt="Summary View">
 
-- `GET /health` - Check bot status
+### Weekly Insights
+<img src="./screenshots/screenshots08-insights.jpeg" width="300" height="600" alt="Weekly Insights">
 
-## Telegram Commands
+### Monthly Report
+<img src="./screenshots/screenshots07-report.jpeg" width="300" height="600" alt="Monthly Report">
 
-- `/start` - Initialize bot
-- `/help` - Show commands
-- `/setup` - Configure profile
-- `/summary` - Quick summary
-- `/report` - Monthly report (Phase 1)
-- `/budget` - Budget planning (Phase 1)
+### Bill Reminders
+<img src="./screenshots/screenshots09-bill.jpeg" width="300" height="600" alt="Set Bill">
 
-## Requirements
+### Check Reminders
+<img src="./screenshots/screenshots10-reminders.jpeg" width="300" height="600" alt="Upcoming Reminders">
 
-- Node.js 18+
-- MongoDB Atlas (free tier)
-- Telegram Bot Token
+## Project Structure
 
-## Getting Bot Token
+finbot-ai/
+│
+├── backend/
+│   ├── src/
+│   │   ├── config/
+│   │   │   └── database.js
+│   │   ├── models/
+│   │   │   ├── User.js
+│   │   │   ├── Transaction.js
+│   │   │   ├── Goal.js
+│   │   │   └── Bill.js
+│   │   ├── services/
+│   │   │   ├── transactionService.js
+│   │   │   ├── reportService.js
+│   │   │   ├── budgetService.js
+│   │   │   ├── goalService.js
+│   │   │   ├── affordabilityService.js
+│   │   │   ├── insightService.js
+│   │   │   ├── receiptService.js
+│   │   │   ├── billReminderService.js
+│   │   │   ├── geminiService.js
+│   │   │   └── huggingfaceService.js
+│   │   ├── handlers/
+│   │   │   ├── commandHandler.js
+│   │   │   └── messageHandler.js
+│   │   ├── utils/
+│   │   │   ├── logger.js
+│   │   │   └── helpers.js
+│   │   └── index.js
+│   ├── logs/
+│   ├── temp/
+│   ├── .env
+│   ├── .gitignore
+│   ├── package.json
+│   ├── README.md
+│   ├── node_modules/
+│   └── testGemini.js
+│
+│
+└── README.md
 
-1. Message @BotFather on Telegram
-2. Send `/newbot`
-3. Choose name & username
-4. Copy token
+## Commands
 
-## Contributing
+| Command | Description |
+|---------|-------------|
+| `/start` | Start bot |
+| `/help` | Show commands |
+| `/setup` | Configure profile |
+| `/summary` | Financial summary |
+| `/report` | Monthly report |
+| `/budget` | Budget planning |
+| `/goals` | Manage goals |
+| `/afford` | Affordability check |
+| `/insights` | Weekly insights |
+| `/bill` | Set bill reminder |
+| `/bills` | View bills |
+| `/reminders` | Upcoming bills |
 
-Phase 1 tasks:
-- [ ] Report generation
-- [ ] Budget planning
-- [ ] Goal tracking
-- [ ] AI category detection
+## Examples
+Spent ₹500 on pizza
+Received ₹60,000 salary
+Can I afford ₹80,000 laptop?
+Goal: Save ₹1,00,000 for laptop
+Remind me electricity bill ₹1500 on 5th
 
+## Upload Receipt
 
+Send receipt photo → Bot extracts amount → Confirms category → Auto-logs expense
 
-## Author
+## 👤 Author
 
-Abhi0605
+abhi0506

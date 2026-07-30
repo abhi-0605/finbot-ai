@@ -57,13 +57,19 @@ Type /help for all commands.`;
 /report - Monthly report
 /budget - Create/edit budget
 /goals - Manage financial goals
-/analyze - Analyze spending
 /afford - Check affordability
+/insights - Weekly insights
+/bill - Set bill reminder
+/bills - View all bills
+/reminders - Upcoming bills
 
 💬 Just chat naturally:
 - "Spent ₹500 on lunch"
-- "Received ₹80,000 salary"
-- "How much did I spend on food?"`;
+- "Received ₹60,000 salary"
+- Upload receipt photo
+- "Goal: Save ₹1,00,000 for laptop"
+- "Can I afford ₹80,000 laptop?"
+- "Remind me wifi 800 on 15"`;
 
         await ctx.reply(helpMessage);
     },
