@@ -55,7 +55,7 @@ const messageHandler = {
                             ...user.pendingReceipt,
                             amount: newAmount
                         };
-                        
+
                         await user.save();
                         await ctx.reply(`✅ Amount updated to ₹${user.pendingReceipt.amount}. Reply "yes" to confirm.`);
                         return;
@@ -94,6 +94,14 @@ const messageHandler = {
                 await handleAffordability(ctx, user, userMessage);
                 return;
             }
+
+
+            // Detect bill reminder
+            if (userMessage.includes('remind') && userMessage.includes('on') && userMessage.match(/on\s+\d+/i)) {
+                await handleBillReminder(ctx, user, userMessage);
+                return;
+            }
+
 
             await ctx.reply(
                 '💭 I didn\'t understand. Try:\n\n' +
@@ -284,7 +292,7 @@ const handleGoal = async (ctx, user, userMessage) => {
             return;
         }
 
-        // Remove the matched amount from the string
+        
         const goalName = userMessage.replace(amountMatch[0], '').replace(/goal:/i, '').replace(/save/i, '').replace(/for/i, '').trim();
 
         const goal = await Goal.create({
@@ -310,6 +318,8 @@ const handleGoal = async (ctx, user, userMessage) => {
         await ctx.reply('❌ Failed to create goal. Try again.');
     }
 };
+
+
 
 
 
@@ -361,6 +371,8 @@ ${analysis.recommendation}`;
 
 
 
+
+
 const handleReceipt = async (ctx, user, fileId) => {
     try {
         await ctx.reply('📸 Processing receipt... please wait');
@@ -380,7 +392,7 @@ const handleReceipt = async (ctx, user, fileId) => {
             return;
         }
 
-        // Show extracted and ask confirmation
+        
         await ctx.reply(
             `📋 Extracted from receipt:\n\n` +
             `Amount: ₹${result.amount}\n` +
@@ -390,7 +402,7 @@ const handleReceipt = async (ctx, user, fileId) => {
             `"₹XXX" to correct amount`
         );
 
-        // Store pending receipt for confirmation
+        
         user.pendingReceipt = {
             amount: result.amount,
             category: result.category,
@@ -401,6 +413,65 @@ const handleReceipt = async (ctx, user, fileId) => {
     } catch (error) {
         logger.error('Error in handleReceipt:', error);
         await ctx.reply('❌ Failed to process receipt. Try again.');
+    }
+};
+
+
+
+
+
+
+
+
+
+
+const handleBillReminder = async (ctx, user, userMessage) => {
+    try {
+        
+        const amountMatch = userMessage.match(/[\d,]+/);
+        const amount = amountMatch ? parseInt(amountMatch[0].replace(/,/g, '')) : null;
+
+        if (!amount) {
+            await ctx.reply('❌ Please specify amount. Example: "Remind me wifi 800 on 15"');
+            return;
+        }
+
+        
+        const dateMatch = userMessage.match(/on\s+(\d+)/i);
+        const dueDate = dateMatch ? parseInt(dateMatch[1]) : null;
+
+        if (!dueDate || dueDate < 1 || dueDate > 31) {
+            await ctx.reply('❌ Please specify valid date (1-31). Example: "Remind me wifi 800 on 15"');
+            return;
+        }
+
+       
+        const billName = userMessage
+            .replace(/remind\s+me\s+/i, '')
+            .replace(/\s+[\d,]+\s+on\s+\d+/i, '')
+            .trim();
+
+        const billReminderService = require('../services/billReminderService');
+        const bill = await billReminderService.createBill(user.telegramId, {
+            name: billName || 'Bill',
+            amount,
+            dueDate,
+            category: 'Bills',
+        });
+
+        logger.info(`Bill reminder created: ${billName} ₹${amount} on ${dueDate}th by user ${user.telegramId}`);
+
+        await ctx.reply(
+            `✅ Bill Reminder Set!\n\n` +
+            `Bill: ${bill.name}\n` +
+            `Amount: ₹${bill.amount}\n` +
+            `Due: ${getOrdinalSuffix(bill.dueDate)} (monthly)\n\n` +
+            `Use /bills to view all bills`
+        );
+
+    } catch (error) {
+        logger.error('Error in handleBillReminder:', error);
+        await ctx.reply('❌ Failed to set reminder. Try again.');
     }
 };
 

@@ -72,7 +72,23 @@ bot.command('insights', async(ctx) => {
     await commandHandler.handleWeeklyInsights(ctx);
 });
 
+// /bill command handler
+bot.command('bill', async(ctx) => {
+  logger.info(`User requested bill setup: ${ctx.from.id}`);
+  await commandHandler.handleBill(ctx);
+});
 
+// /bills command handler
+bot.command('bills', async(ctx) =>{
+  logger.info(`User requested bill list: ${ctx.from.id}`);
+  await commandHandler.handleBillList(ctx);
+});
+
+// /reminders command handler
+bot.command('reminders', async(ctx) => {
+  logger.info(`User requested bill reminders: ${ctx.from.id}`);
+  await commandHandler.handleBillReminders(ctx);
+});
 
 
 // ============ MESSAGE HANDLER (Last) ============

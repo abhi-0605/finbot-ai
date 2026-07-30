@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const logger = require('../utils/logger');
+const { getOrdinalSuffix } = require('../utils/helpers');
 
 const commandHandler = {
 
@@ -395,7 +396,96 @@ ${insightsText}`;
     },
 
 
-    
+    handleBill: async (ctx) => {
+    const telegramId = ctx.from.id;
+
+    try {
+        const user = await User.findOne({ telegramId });
+
+        if (!user) {
+            await ctx.reply('❌ User not found. Please /start first.');
+            return;
+        }
+
+        await ctx.reply(
+            `📋 Bill Reminders\n\n` +
+            `Set recurring bills:\n` +
+            `"Remind me electricity bill ₹1500 on 5th"\n` +
+            `"Remind me wifi ₹800 every month"\n\n` +
+            `Or use /bills to view all bills`
+        );
+
+    } catch (error) {
+        logger.error('Error in handleBill:', error);
+        await ctx.reply('❌ An error occurred. Please try again.');
+    }
+  },
+
+  handleBillList: async (ctx) => {
+    const telegramId = ctx.from.id;
+
+    try {
+        const user = await User.findOne({ telegramId });
+
+        if (!user) {
+            await ctx.reply('❌ User not found. Please /start first.');
+            return;
+        }
+
+        const billReminderService = require('../services/billReminderService');
+        const bills = await billReminderService.getBills(telegramId);
+
+        if (bills.length === 0) {
+            await ctx.reply('📋 No bills set yet.\n\nUse: "Remind me electricity bill ₹1500 on 5th"');
+            return;
+        }
+
+        let billsText = '📋 Your Bills:\n\n';
+        bills.forEach((bill, i) => {
+            billsText += `${i + 1}. ${bill.name}\n`;
+            billsText += `   Amount: ₹${bill.amount}\n`;
+            billsText += `   Due: ${getOrdinalSuffix(bill.dueDate)} (${bill.frequency})\n\n`;
+        });
+
+        await ctx.reply(billsText);
+
+    } catch (error) {
+        logger.error('Error in handleBillList:', error);
+        await ctx.reply('❌ Failed to get bills. Please try again.');
+    }
+  },
+
+  handleBillReminders: async (ctx) => {
+    const telegramId = ctx.from.id;
+
+    try {
+        const user = await User.findOne({ telegramId });
+
+        if (!user) {
+            await ctx.reply('❌ User not found. Please /start first.');
+            return;
+        }
+
+        const billReminderService = require('../services/billReminderService');
+        const reminders = await billReminderService.checkBillReminders(telegramId);
+
+        if (reminders.length === 0) {
+            await ctx.reply('✅ No bills due soon!');
+            return;
+        }
+
+        let reminderText = '⏰ Upcoming Bills:\n\n';
+        reminders.forEach(reminder => {
+            reminderText += reminder + '\n';
+        });
+
+        await ctx.reply(reminderText);
+
+    } catch (error) {
+        logger.error('Error in handleBillReminders:', error);
+        await ctx.reply('❌ Failed to get reminders. Please try again.');
+    }
+  },
 
 };
 
