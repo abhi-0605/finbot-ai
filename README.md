@@ -116,12 +116,7 @@ finbot-ai/
 | `/bills` | View bills |
 | `/reminders` | Upcoming bills |
 
-## Examples
-Spent ₹500 on pizza
-Received ₹60,000 salary
-Can I afford ₹80,000 laptop?
-Goal: Save ₹1,00,000 for laptop
-Remind me electricity bill ₹1500 on 5th
+
 
 ## Upload Receipt
 
