@@ -65,6 +65,14 @@ const userSchema = new mongoose.Schema(
             },
         },
 
+        
+        pendingReceipt: {
+            type: Object,
+            default: null,
+        },
+
+
+
         financialGoals: {
             type: String,
             default: '',
@@ -74,6 +82,7 @@ const userSchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
+        
     },
     { timestamps: true }
 );

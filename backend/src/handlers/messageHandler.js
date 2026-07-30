@@ -3,122 +3,184 @@ const Transaction = require('../models/Transaction');
 const Goal = require('../models/Goal');
 const logger = require('../utils/logger');
 
-const messageHandler ={
+
+const messageHandler = {
     handleMessage: async (ctx) => {
         const telegramId = ctx.from.id;
-        const userMessage= ctx.message.text.toLowerCase();
 
-        try{
-            let user = await User.findOne({telegramId});
+        try {
+            let user = await User.findOne({ telegramId });
 
-            if(!user){
+            if (!user) {
                 await ctx.reply('❌ User not found. Please /start first.');
                 return;
             }
 
-            // Check if the user is in the middle of setup
-            if(!user.isSetupComplete && user.setupStep > 0){
+            // PHOTO CHECK FIRST - before accessing text
+            if (ctx.message && ctx.message.photo) {
+                await handleReceipt(ctx, user, ctx.message.photo[ctx.message.photo.length - 1].file_id);
+                return;
+            }
+
+            // NOW get text
+            if (!ctx.message || !ctx.message.text) {
+                await ctx.reply('❌ Please send text or photo');
+                return;
+            }
+
+            const userMessage = ctx.message.text.toLowerCase();
+
+            // Check if waiting for receipt confirmation
+            if (user.pendingReceipt) {
+                if (userMessage === 'yes' || userMessage === 'confirm') {
+                    const transaction = await Transaction.create({
+                        userId: user.telegramId,
+                        amount: user.pendingReceipt.amount,
+                        type: 'expense',
+                        category: user.pendingReceipt.category,
+                        description: `Receipt: ${user.pendingReceipt.text}`,
+                        taggedBy: 'ocr',
+                    });
+                    const amount = user.pendingReceipt.amount;
+                    const category = user.pendingReceipt.category;
+                    user.pendingReceipt = null;
+                    await user.save();
+                    await ctx.reply(`✅ Expense logged! ₹${amount} ${category}`);
+                    return;
+                } else if (userMessage.match(/^[\d,]+$/)) {
+                    const match = userMessage.match(/[\d,]+/);
+                    if (match) {
+                        const newAmount = parseInt(match[0].replace(/,/g, ''));
+                        user.pendingReceipt = {
+                            ...user.pendingReceipt,
+                            amount: newAmount
+                        };
+                        
+                        await user.save();
+                        await ctx.reply(`✅ Amount updated to ₹${user.pendingReceipt.amount}. Reply "yes" to confirm.`);
+                        return;
+                    }
+                }
+                await ctx.reply('Reply "yes" to confirm or "₹XXX" to change amount');
+                return;
+            }
+
+            // Check setup
+            if (!user.isSetupComplete && user.setupStep > 0) {
                 await handleSetupProgress(ctx, user, userMessage);
                 return;
             }
 
-            //expense handling logic
-            if(userMessage.includes('spent') || userMessage.includes('paid') || userMessage.includes('bought')){
+            // Expense
+            if (userMessage.includes('spent') || userMessage.includes('paid') || userMessage.includes('bought')) {
                 await handleExpense(ctx, user, userMessage);
                 return;
             }
 
-            if(userMessage.includes('earned') || userMessage.includes('received') || userMessage.includes('got')){
+            // Income
+            if (userMessage.includes('earned') || userMessage.includes('received') || userMessage.includes('got')) {
                 await handleIncome(ctx, user, userMessage);
                 return;
             }
 
-            if(userMessage.includes('goal:') || userMessage.includes('goal:') || userMessage.includes('goal:')){
+            // Goals
+            if (userMessage.includes('goal:') || userMessage.includes('save for')) {
                 await handleGoal(ctx, user, userMessage);
                 return;
             }
 
-            if(userMessage.includes('afford') || userMessage.includes('can i buy') || userMessage.includes('should i buy')){
+            // Affordability
+            if (userMessage.includes('afford') || userMessage.includes('can i buy')) {
                 await handleAffordability(ctx, user, userMessage);
                 return;
             }
 
-
             await ctx.reply(
                 '💭 I didn\'t understand. Try:\n\n' +
-                '• "Spent ₹450 on pizza"\n' + 
+                '• "Spent ₹450 on pizza"\n' +
                 '• "Received ₹60,000 salary"\n' +
+                '• Or upload a receipt photo\n' +
                 '• Or use /help'
-            ); 
+            );
 
-
-        }catch(error){
+        } catch (error) {
             logger.error('Error in handleMessage:', error);
             await ctx.reply('❌ An error occurred. Please try again.');
         }
     },
 };
 
-const handleSetupProgress = async (ctx, user, userMessage) => {
-    try{
-        const step=user.setupStep;
 
-        if(step===1){
-            const income=parseInt(userMessage.match(/\d+/)?.[0]);
-            if(!income || isNaN(income)){
+
+
+
+
+const handleSetupProgress = async (ctx, user, userMessage) => {
+    try {
+        const step = user.setupStep;
+
+        if (step === 1) {
+            const income = parseInt(userMessage.match(/\d+/)?.[0]);
+            if (!income || isNaN(income)) {
                 await ctx.reply('❌ Please enter a valid number. Example: 60000');
                 return;
             }
 
-            user.monthlyIncome=income;
-            user.setupStep=2;
+            user.monthlyIncome = income;
+            user.setupStep = 2;
             await user.save();
             await ctx.reply(`✅ Got it! Monthly income: ₹${income}\n\nNow, how much savings do you have? (in ₹)`);
-        }else if(step===2){
-            const savings=parseInt(userMessage.match(/\d+/)?.[0]);
-            if(!savings || isNaN(savings)){
+        } else if (step === 2) {
+            const savings = parseInt(userMessage.match(/\d+/)?.[0]);
+            if (!savings || isNaN(savings)) {
                 await ctx.reply('❌ Please enter a valid number. Example: 120000');
                 return;
             }
-            user.currentSavings=savings;
-            user.setupStep=3;
+            user.currentSavings = savings;
+            user.setupStep = 3;
             await user.save();
             await ctx.reply(`✅ Got it! Current savings: ₹${savings}\n\nWhat's your emergency fund target? (in ₹)`);
-        }else if(step===3){
+        } else if (step === 3) {
             const target = parseInt(userMessage.match(/\d+/)?.[0]);
-            if(!target || isNaN(target)){
+            if (!target || isNaN(target)) {
                 await ctx.reply('❌ Please enter a valid number. Example: 250000');
                 return;
             }
-            user.emergencyFundTarget=target;
-            user.setupStep=4;
+            user.emergencyFundTarget = target;
+            user.setupStep = 4;
             await user.save();
             await ctx.reply(`✅ Got it! Emergency fund target: ₹${target}\n\nWhat's your main financial goal?`);
-        }else if(step===4){
-            user.financialGoals=userMessage;
-            user.isSetupComplete=true;
-            user.setupStep=0;
+        } else if (step === 4) {
+            user.financialGoals = userMessage;
+            user.isSetupComplete = true;
+            user.setupStep = 0;
             await user.save();
             await ctx.reply(`✅ Setup complete! 🎉\n\nNow you can start tracking expenses and income.\n\nTry: "Spent ₹500 on lunch" or "Salary ₹60000"`);
         }
-    }catch(error){
+    } catch (error) {
         logger.error('Error in handleSetupProgress:', error);
         await ctx.reply('❌ Setup error. Please try again.');
     }
 };
 
 
+
+
+
+
+
+
 const handleExpense = async (ctx, user, userMessage) => {
-    try{
+    try {
         const amountMatch = userMessage.match(/₹?([\d,]+)/);
         const amount = amountMatch ? parseInt(amountMatch[1].replace(/,/g, '')) : null;
 
-        if(!amount || isNaN(amount)){
+        if (!amount || isNaN(amount)) {
             await ctx.reply('❌ Couldn\'t find amount. Example: "Spent ₹450 on pizza"');
             return;
         }
 
-       
+
         const geminiService = require('../services/geminiService');
         let category = await geminiService.categorizeExpense(userMessage);
 
@@ -126,12 +188,12 @@ const handleExpense = async (ctx, user, userMessage) => {
         // let category = await huggingfaceService.categorizeExpense(userMessage);
 
         if (!category) {
-          category = 'Other';
-          if(userMessage.includes('food') || userMessage.includes('pizza') || userMessage.includes('lunch') || userMessage.includes('dinner') || userMessage.includes('restaurant')) category='Food';
-          else if (userMessage.includes('fuel') || userMessage.includes('transport') || userMessage.includes('auto') || userMessage.includes('taxi') || userMessage.includes('uber')) category = 'Transport';
-          else if (userMessage.includes('bill') || userMessage.includes('electric') || userMessage.includes('water') || userMessage.includes('internet')) category = 'Utilities';
-          else if (userMessage.includes('movie') || userMessage.includes('entertainment') || userMessage.includes('game') || userMessage.includes('spotify')) category = 'Entertainment';
-          else if (userMessage.includes('clothes') || userMessage.includes('shop') || userMessage.includes('dress') || userMessage.includes('shoes')) category = 'Shopping';
+            category = 'Other';
+            if (userMessage.includes('food') || userMessage.includes('pizza') || userMessage.includes('lunch') || userMessage.includes('dinner') || userMessage.includes('restaurant')) category = 'Food';
+            else if (userMessage.includes('fuel') || userMessage.includes('transport') || userMessage.includes('auto') || userMessage.includes('taxi') || userMessage.includes('uber')) category = 'Transport';
+            else if (userMessage.includes('bill') || userMessage.includes('electric') || userMessage.includes('water') || userMessage.includes('internet')) category = 'Utilities';
+            else if (userMessage.includes('movie') || userMessage.includes('entertainment') || userMessage.includes('game') || userMessage.includes('spotify')) category = 'Entertainment';
+            else if (userMessage.includes('clothes') || userMessage.includes('shop') || userMessage.includes('dress') || userMessage.includes('shoes')) category = 'Shopping';
         }
 
         const transaction = await Transaction.create({
@@ -151,19 +213,27 @@ const handleExpense = async (ctx, user, userMessage) => {
             `Category: ${category}\n` +
             `Date: Today`
         );
-    }catch(error){
+    } catch (error) {
         logger.error('Error in handleExpense:', error);
         await ctx.reply('❌ Failed to log expense. Try again.');
     }
 };
 
 
+
+
+
+
+
+
+
+
 const handleIncome = async (ctx, user, userMessage) => {
-    try{
+    try {
         const amountMatch = userMessage.match(/₹?([\d,]+)/);
         const amount = amountMatch ? parseInt(amountMatch[1].replace(/,/g, '')) : null;
 
-        if(!amount || isNaN(amount)){
+        if (!amount || isNaN(amount)) {
             await ctx.reply('❌ Couldn\'t find amount. Example: "Received ₹60,000 salary"');
             return;
         }
@@ -187,60 +257,71 @@ const handleIncome = async (ctx, user, userMessage) => {
             `Amount: ₹${amount}\n` +
             `Type: ${source === 'freelance' ? 'Freelance' : 'Salary'}\n` +
             `Date: Today`
-        );  
+        );
 
 
-    }catch(error){
+    } catch (error) {
         logger.error('Error in handleIncome:', error);
         await ctx.reply('❌ Failed to log income. Try again.');
     }
-}
-
-
-const handleGoal = async (ctx, user, userMessage) => {
-  try {
-    const amountMatch = userMessage.match(/[\d,]+/);
-    const amount = amountMatch ? parseInt(amountMatch[0].replace(/,/g, '')) : null;
-
-    if (!amount || isNaN(amount)) {
-      await ctx.reply('❌ Couldn\'t find amount. Example: "Goal: Save ₹1,00,000 for laptop"');
-      return;
-    }
-
-    // Remove the matched amount from the string
-    const goalName = userMessage.replace(amountMatch[0], '').replace(/goal:/i, '').replace(/save/i, '').replace(/for/i, '').trim();
-
-    const goal = await Goal.create({
-      userId: user.telegramId,
-      name: goalName || 'Unnamed Goal',
-      targetAmount: amount,
-      currentAmount: 0,
-      status: 'active',
-    });
-
-    logger.info(`Goal created: ${goalName} for ₹${amount} by user ${user.telegramId}`);
-
-    await ctx.reply(
-      `✅ Goal Created!\n\n` +
-      `Goal: ${goalName}\n` +
-      `Target: ₹${amount}\n` +
-      `Progress: 0%\n\n` +
-      `Use /goals to view all goals!`
-    );
-
-  } catch (error) {
-    logger.error('Error in handleGoal:', error);
-    await ctx.reply('❌ Failed to create goal. Try again.');
-  }
 };
 
 
-const handleAffordability = async(ctx, user, userMessage) => {
-    try{
+
+
+
+
+
+
+
+const handleGoal = async (ctx, user, userMessage) => {
+    try {
         const amountMatch = userMessage.match(/[\d,]+/);
         const amount = amountMatch ? parseInt(amountMatch[0].replace(/,/g, '')) : null;
 
-        if(!amount || isNaN(amount)){
+        if (!amount || isNaN(amount)) {
+            await ctx.reply('❌ Couldn\'t find amount. Example: "Goal: Save ₹1,00,000 for laptop"');
+            return;
+        }
+
+        // Remove the matched amount from the string
+        const goalName = userMessage.replace(amountMatch[0], '').replace(/goal:/i, '').replace(/save/i, '').replace(/for/i, '').trim();
+
+        const goal = await Goal.create({
+            userId: user.telegramId,
+            name: goalName || 'Unnamed Goal',
+            targetAmount: amount,
+            currentAmount: 0,
+            status: 'active',
+        });
+
+        logger.info(`Goal created: ${goalName} for ₹${amount} by user ${user.telegramId}`);
+
+        await ctx.reply(
+            `✅ Goal Created!\n\n` +
+            `Goal: ${goalName}\n` +
+            `Target: ₹${amount}\n` +
+            `Progress: 0%\n\n` +
+            `Use /goals to view all goals!`
+        );
+
+    } catch (error) {
+        logger.error('Error in handleGoal:', error);
+        await ctx.reply('❌ Failed to create goal. Try again.');
+    }
+};
+
+
+
+
+
+
+const handleAffordability = async (ctx, user, userMessage) => {
+    try {
+        const amountMatch = userMessage.match(/[\d,]+/);
+        const amount = amountMatch ? parseInt(amountMatch[0].replace(/,/g, '')) : null;
+
+        if (!amount || isNaN(amount)) {
             await ctx.reply('❌ Please specify amount. Example: "Can I afford ₹80,000 laptop?"');
             return;
         }
@@ -269,10 +350,62 @@ ${analysis.recommendation}`;
 
         await ctx.reply(affordabilityMessage);
 
-    }catch(error){
+    } catch (error) {
         logger.error('Error in handleAffordability:', error);
         await ctx.reply('❌ Failed to analyze affordability. Try again.');
     }
-}
+};
 
-module.exports=messageHandler;
+
+
+
+
+
+const handleReceipt = async (ctx, user, fileId) => {
+    try {
+        await ctx.reply('📸 Processing receipt... please wait');
+
+        const receiptService = require('../services/receiptService');
+        const fileUrl = await ctx.telegram.getFileLink(fileId);
+
+        const result = await receiptService.extractFromReceipt(fileUrl.href);
+
+        if (!result.success || !result.amount) {
+            await ctx.reply(
+                `❓ OCR couldn't extract amount clearly.\n\n` +
+                `Extracted text: "${result.text}"\n\n` +
+                `Please reply with the amount:\n` +
+                `"₹XXX" or "Spent ₹XXX on ${result.category}"`
+            );
+            return;
+        }
+
+        // Show extracted and ask confirmation
+        await ctx.reply(
+            `📋 Extracted from receipt:\n\n` +
+            `Amount: ₹${result.amount}\n` +
+            `Category: ${result.category}\n\n` +
+            `Reply with:\n` +
+            `"Yes" to confirm\n` +
+            `"₹XXX" to correct amount`
+        );
+
+        // Store pending receipt for confirmation
+        user.pendingReceipt = {
+            amount: result.amount,
+            category: result.category,
+            text: result.text
+        };
+        await user.save();
+
+    } catch (error) {
+        logger.error('Error in handleReceipt:', error);
+        await ctx.reply('❌ Failed to process receipt. Try again.');
+    }
+};
+
+
+
+
+
+module.exports = messageHandler;
