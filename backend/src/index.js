@@ -91,14 +91,22 @@ bot.command('reminders', async(ctx) => {
 });
 
 
-// ============ MESSAGE HANDLER (Last) ============
+
+
+
+
+
+// Message handler for all other messages
 
 bot.on('message', async (ctx) => {
   logger.info(`Message from ${ctx.from.id}: ${ctx.message.text}`);
   await messageHandler.handleMessage(ctx);
 });
 
-// ============ EXPRESS ROUTES ============
+
+
+
+// Health check endpoint
 
 app.get('/health', (req, res) => {
   res.json({ status: 'Bot is running' });
