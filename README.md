@@ -122,6 +122,6 @@ finbot-ai/
 
 Send receipt photo → Bot extracts amount → Confirms category → Auto-logs expense
 
-## 👤 Author
+## 👤 Developer
 
 abhi0506
