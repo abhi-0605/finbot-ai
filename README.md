@@ -1,6 +1,6 @@
 # FinBot AI - Personal Finance Telegram Bot
 
-AI-Powered Telegram bot for expense tracking, budgeting, and financial insights.
+FinBot AI is an intelligent Telegram bot that transforms personal finance management through natural language conversations. Log expenses, track income, analyze spending patterns, plan budgets, set financial goals, receive weekly insights, and get real-time affordability analysis. With receipt OCR and bill reminders, managing your finances has never been easier or more accessible
 
 ## Features
 
@@ -57,8 +57,9 @@ AI-Powered Telegram bot for expense tracking, budgeting, and financial insights.
 
 ## Project Structure
 
+
+```
 finbot-ai/
-│
 ├── backend/
 │   ├── src/
 │   │   ├── config/
@@ -91,12 +92,12 @@ finbot-ai/
 │   ├── .env
 │   ├── .gitignore
 │   ├── package.json
-│   ├── README.md
-│   ├── node_modules/
-│   └── testGemini.js
+│   └── README.md
 │
-│
-└── README.md
+├── screenshots/
+├── README.md
+└── .gitignore
+```
 
 ## Commands
 
