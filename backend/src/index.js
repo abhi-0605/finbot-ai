@@ -112,23 +112,24 @@ app.get('/health', (req, res) => {
   res.json({ status: 'Bot is running' });
 });
 
-app.post('/webhook', (req, res) => {
-  bot.handleUpdate(req.body);
-  res.send('ok');
-});
+// webhook setup
+
+const webhookUrl = process.env.WEBHOOK_URL || 'https://finbot-ai-1yya.onrender.com';
+
+app.use(bot.webhookCallback('/webhook'));
+
+bot.telegram.setWebhook(`${webhookUrl}/webhook`)
+  .then(() => logger.info('✅ Webhook set successfully'))
+  .catch((err) => logger.error('Webhook error:', err));
 
 app.listen(port, () => {
   logger.info(`✅ Server running on port ${port}`);
   logger.info(`🤖 Bot is ready to receive messages`);
-});
-
-bot.launch().catch((err) => {
-  logger.error('Bot launch error:', err);
+  logger.info(`🔗 Webhook mode active at ${webhookUrl}/webhook`);
 });
 
 process.on('SIGINT', () => {
   logger.info('Shutting down gracefully...');
-  bot.stop();
   process.exit(0);
 });
 
