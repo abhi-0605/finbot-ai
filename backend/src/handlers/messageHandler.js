@@ -9,6 +9,7 @@ const messageHandler = {
     handleMessage: async (ctx) => {
         const telegramId = ctx.from.id;
 
+          
         try {
             let user = await User.findOne({ telegramId });
 
@@ -103,13 +104,24 @@ const messageHandler = {
                 return;
             }
 
+            // goal progress 
+            if(userMessage.includes('add') && userMessage.includes('to') && userMessage.includes('goal')){
+                // console.log('GOAL PROGRESS TRIGGERED!');
+                await handleGoalProgress(ctx,user,userMessage);
+                return;
+            }
 
+ 
             await ctx.reply(
                 '💭 I didn\'t understand. Try:\n\n' +
                 '• "Spent ₹450 on pizza"\n' +
                 '• "Received ₹60,000 salary"\n' +
-                '• Or upload a receipt photo\n' +
-                '• Or use /help'
+                '• "Goal: Save ₹1,00,000 for laptop"\n' +
+                '• "Add ₹20,000 to laptop goal"\n' +
+                '• "Can I afford ₹80,000 laptop?"\n' +
+                '• "Remind me wifi bill 800 on 15"\n' +
+                '• Upload receipt photo\n\n' +
+                '📞 Need help? Use /help or message @abhi0506'
             );
 
         } catch (error) {
@@ -479,5 +491,56 @@ const handleBillReminder = async (ctx, user, userMessage) => {
 
 
 
+
+
+
+
+const handleGoalProgress = async(ctx,user,userMessage) => {
+    try{
+        const amountMatch = userMessage.match(/₹?\s*([\d,]+)/);
+        const amount = amountMatch ? parseInt(amountMatch[1].replace(/,/g, '')) : null;
+
+        if(!amount ){
+            await ctx.reply('❌ Please specify amount. Example: "Progress ₹20,000 for laptop"');
+            return;
+        }
+
+        const goalMatch = userMessage.match(/to\s+(.+?)\s+goal/i);
+        const goalName = goalMatch ? goalMatch[1].trim() : null;
+
+        if(!goalName){
+            await ctx.reply('❌ Please specify goal name. Example: "Progress ₹20,000 to laptop goal"');
+            return;
+        }
+
+        const Goal = require('../models/Goal');
+        const goal = await Goal.findOne({ userId: user.telegramId, name: new RegExp(goalName, 'i') });
+
+        if (!goal) {
+            await ctx.reply(`❌ Goal "${goalName}" not found. Use /goals to see your goals.`);
+            return;
+        }
+
+        goal.currentAmount += amount;
+        const progress= ((goal.currentAmount / goal.targetAmount) * 100).toFixed(1);
+
+        if(goal.currentAmount >= goal.targetAmount){
+            goal.status = 'completed';
+        }
+
+        await goal.save();
+
+        await ctx.reply(
+            `✅ Added ₹${amount} to "${goal.name}"\n\n` +
+            `Current: ₹${goal.currentAmount}\n` +
+            `Target: ₹${goal.targetAmount}\n` +
+            `Progress: ${progress}% ${'█'.repeat(Math.round(progress / 10))}${'░'.repeat(10 - Math.round(progress / 10))}`
+        )
+
+    }catch(error){
+        logger.error('Error in handleGoalProgress:', error);
+        await ctx.reply('❌ Failed to update goal progress. Try again.');
+    }
+}
 
 module.exports = messageHandler;
